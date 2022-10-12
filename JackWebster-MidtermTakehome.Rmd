@@ -1,0 +1,82 @@
+---
+title: "Midterm TakeHome"
+author: "Jack Webster"
+date: "`r Sys.Date()`"
+output: html_document
+---
+ https://github.com/JWebster2704/Midterm-TakeHome
+```{r}
+library(tidyverse)
+library(lubridate)
+eqdata <- read_csv("https://MichaelHughes1963.github.io/earthquake.csv")
+```
+Calculation of total earthquakes, as well as the mean, median, and standard deviation of depth
+```{r}
+depthsummary <- eqdata %>%
+  select(depth) %>%
+  mutate(Count = 1) %>%
+  summarise(Earthquakes = sum(Count),
+            DepthMean = mean(depth),
+            DepthSD = sd(depth),
+            DepthMed = median(depth))
+glimpse(depthsummary)
+```
+Based on the results, we can infer that the distribution
+is normal and skewed right. The median suggests that 50% of the earthquake depths are 15.4 or below, and the mean and standard deviation are inflated by a smaller number of earthquakes at a much
+greater depth than the majority.
+
+Paste the date and time variables together to create a single
+date variable to determine earliest and latest earthquakes
+(2008-11-01 00:31:25 UTC and 2022-09-26 23:17:38 UTC)
+```{r}
+EQdates <- eqdata %>%
+  mutate(DateTime = paste0(as_date(date), ' ', hms::as_hms(time), ' UTC')) %>%
+  select(-date, -time)
+
+FirstEQ <- EQdates %>%
+  arrange(as_date(DateTime)) %>%
+  slice_head()
+glimpse(FirstEQ)
+
+LastEQ <- EQdates %>%
+  arrange(as_date(DateTime)) %>%
+  slice_tail()
+glimpse(LastEQ)
+```
+Remove incomplete years and calculate each year's earthquake total and 
+mean, median, and maximum magnitude
+```{r}
+magsummary <- EQdates %>%
+  filter(year(DateTime) == 2009:2021) %>%
+  mutate(Count = 1) %>%
+  group_by(year(DateTime)) %>%
+  summarise(TotalQuakes = sum(Count),
+            MeanMag = mean(magnitude),
+            MedianMag = median(magnitude),
+            MaxMag = max(magnitude))
+glimpse(magsummary)
+```
+The years 2018, 2019, and 2021 were the worst years
+overall because of the total number of earthquakes each year.
+
+The total number of earthquakes is trending upwards, and the magnitude seems to be trending slightly downwards, as the mean and median values have fallen since the first years of the data.
+
+Location and season variables created with case_when variable (https://www.sharpsightlabs.com/blog/case-when-r/)
+The mean and median earthquake depths are displayed
+For each location and season
+```{r}
+SeasonLocationEQ <- EQdates %>%
+  mutate(location = case_when(longitude > '118.786' ~ "East",
+                              longitude < '118.786' ~ "West"),
+         season = case_when(month(DateTime) == 4:10 ~ "Rainy",
+                            month(DateTime) == 1:3 | 11:12 ~ "Dry")) %>%
+  group_by(location, season) %>%
+  summarise(MeanDepth = mean(depth),
+            MedianDepth = median(depth))
+glimpse(SeasonLocationEQ)
+```
+Generally, earthquakes do not differ based on location or season.
+However, in the East region, the mean depths of earthquakes are higher while the medians remain suggesting that in the East, a small number of earthquakes occur that are at a much greater depth than usual, or is normally present in the West. 
+  
+
+  
